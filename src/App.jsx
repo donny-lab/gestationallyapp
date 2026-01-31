@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // ═══════════════════════════════════════════════════════════════
-// GESTATIONAL.LY V15 - Final Production Version
-// Full content, smart AI, polished UI
+// GESTATIONAL.LY V15.1 - Bug Fixes
+// Fixed: AI input, Journal input, Modal re-rendering
 // ═══════════════════════════════════════════════════════════════
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -46,6 +46,24 @@ const GlassProgress = ({ value, size = 80 }) => {
   return (<div style={{ position: 'relative', width: size, height: size }}><div style={{ position: 'absolute', inset: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)' }} /><svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'relative', zIndex: 1 }}><defs><linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor={C.accent}/><stop offset="100%" stopColor="#9070a0"/></linearGradient></defs><circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={stroke} /><circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="url(#pg)" strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} /></svg></div>);
 };
 
+// MODAL COMPONENT - Defined OUTSIDE App to prevent re-render issues
+const ModalWrapper = ({ isOpen, title, onClose, children, container }) => {
+  if (!isOpen) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(255,252,250,0.92)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', zIndex: 100, overflowY: 'auto', padding: 20 }}>
+      <div style={container}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>{title}</h2>
+          <Glass onClick={onClose} intensity="subtle" style={{ padding: 8, borderRadius: 12, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.textMuted} strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </Glass>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const Icons = {
   logo: () => <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><defs><linearGradient id="lg1" x1="0" y1="0" x2="44" y2="44"><stop stopColor={C.accent}/><stop offset="1" stopColor="#9070a0"/></linearGradient></defs><circle cx="22" cy="22" r="20" stroke="url(#lg1)" strokeWidth="1.5" opacity="0.3"/><circle cx="22" cy="22" r="12" stroke="url(#lg1)" strokeWidth="2" opacity="0.6"/><circle cx="22" cy="22" r="5" fill="url(#lg1)"/></svg>,
   home: (a) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 10.5V20a1 1 0 001 1h5v-6a1 1 0 011-1h4a1 1 0 011 1v6h5a1 1 0 001-1v-9.5" stroke={a ? C.accent : C.textMuted} strokeWidth="1.5" fill={a ? C.accentLight : 'none'}/><path d="M2 12l10-9 10 9" stroke={a ? C.accent : C.textMuted} strokeWidth="1.5" strokeLinecap="round"/></svg>,
@@ -69,7 +87,7 @@ const Icons = {
   logout: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
   email: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.textMuted} strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>,
   lock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.textMuted} strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
-  sparkle: () => <svg width="20" height="20" viewBox="0 0 24 24" fill={C.accent}><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z"/></svg>,
+  sparkle: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z"/></svg>,
   send: () => <svg width="20" height="20" viewBox="0 0 24 24" fill={C.accent}><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>,
 };
 
@@ -1524,7 +1542,7 @@ const MOODS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN APP COMPONENT
+// MAIN APP COMPONENT - Fixed modal re-rendering bug
 // ═══════════════════════════════════════════════════════════════
 export default function App() {
   const [session, setSession] = useState(null);
@@ -1635,22 +1653,11 @@ export default function App() {
   const askAi = () => { if (aiQuery.trim()) setAiResponse(buildAIResponse(aiQuery, user)); };
   const timeline = () => { if (!user.startDate) return []; let w = 0; return stages.map((s, i) => { const start = new Date(user.startDate + w * 604800000); w += s.weeks; return { ...s, start, end: new Date(user.startDate + w * 604800000), status: i < si ? 'done' : i === si ? 'current' : 'future' }; }); };
 
+  const closeModal = () => { setModal(null); setModalData(null); setAiResponse(''); setAiQuery(''); };
+
   const base = { minHeight: '100vh', background: BG, fontFamily: "'SF Pro Display',-apple-system,sans-serif", color: C.text, position: 'relative', overflow: 'hidden' };
   const page = { ...base, padding: 20, paddingBottom: screen === 'app' ? 110 : 20 };
   const container = { maxWidth: 420, margin: '0 auto', position: 'relative', zIndex: 1 };
-  const closeModal = () => { setModal(null); setModalData(null); setAiResponse(''); setAiQuery(''); };
-
-  const Modal = ({ title, children }) => (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(255,252,250,0.92)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', zIndex: 100, overflowY: 'auto', padding: 20 }}>
-      <div style={container}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>{title}</h2>
-          <Glass onClick={closeModal} intensity="subtle" style={{ padding: 8, borderRadius: 12, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icons.close()}</Glass>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
 
   const Nav = () => (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, padding: '12px 20px 28px' }}>
@@ -1687,28 +1694,143 @@ export default function App() {
     </div>
   );
 
-  // Modals
-  if (modal === 'resource' && modalData) return <Modal title={modalData.title}><GlassPill>{modalData.cat}</GlassPill><p style={{ color: C.textMuted, margin: '10px 0 24px', fontSize: 14 }}>{modalData.time} read</p><Glass intensity="strong" style={{ padding: 24 }}><pre style={{ fontFamily: 'inherit', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>{modalData.content}</pre></Glass></Modal>;
+  // ═══════════════════════════════════════════════════════════════
+  // MODALS - Using ModalWrapper component (defined outside App)
+  // ═══════════════════════════════════════════════════════════════
   
-  if (modal === 'mood') return <Modal title="How are you feeling?">{MOODS.map(m => <Glass key={m.label} onClick={() => logMood(m.label)} intensity="normal" style={{ marginBottom: 12, padding: 18 }}><div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 40, height: 40, borderRadius: 20, background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{m.emoji}</div><span style={{ fontSize: 17, fontWeight: 500 }}>{m.label}</span></div></Glass>)}</Modal>;
+  // Resource Modal
+  if (modal === 'resource' && modalData) return (
+    <ModalWrapper isOpen={true} title={modalData.title} onClose={closeModal} container={container}>
+      <GlassPill>{modalData.cat}</GlassPill>
+      <p style={{ color: C.textMuted, margin: '10px 0 24px', fontSize: 14 }}>{modalData.time} read</p>
+      <Glass intensity="strong" style={{ padding: 24 }}>
+        <pre style={{ fontFamily: 'inherit', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>{modalData.content}</pre>
+      </Glass>
+    </ModalWrapper>
+  );
   
-  if (modal === 'journal') return <Modal title="Journal"><Glass intensity="strong" style={{ marginBottom: 16, padding: 0 }}><textarea value={journalText} onChange={e => setJournalText(e.target.value)} placeholder="What's on your mind today?" style={{ width: '100%', minHeight: 160, padding: 20, border: 'none', background: 'transparent', fontSize: 16, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: 1.6 }} /></Glass><GlassButton onClick={saveJ} fullWidth disabled={!journalText.trim()}>Save Entry</GlassButton>{user.journal.length > 0 && <div style={{ marginTop: 32 }}><h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Previous Entries</h3>{[...user.journal].reverse().slice(0, 5).map((j, i) => <Glass key={i} intensity="normal" style={{ marginBottom: 12, padding: 16 }}><div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>{new Date(j.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div><p style={{ margin: 0, fontSize: 15, lineHeight: 1.5 }}>{j.text}</p></Glass>)}</div>}</Modal>;
+  // Mood Modal
+  if (modal === 'mood') return (
+    <ModalWrapper isOpen={true} title="How are you feeling?" onClose={closeModal} container={container}>
+      {MOODS.map(m => (
+        <Glass key={m.label} onClick={() => logMood(m.label)} intensity="normal" style={{ marginBottom: 12, padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 20, background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{m.emoji}</div>
+            <span style={{ fontSize: 17, fontWeight: 500 }}>{m.label}</span>
+          </div>
+        </Glass>
+      ))}
+    </ModalWrapper>
+  );
   
-  if (modal === 'calculator') return <Modal title="Compensation Calculator"><Glass intensity="strong" style={{ marginBottom: 16 }}><div style={{ marginBottom: 20 }}><label style={{ fontSize: 14, color: C.textMuted }}>Base Compensation</label><div style={{ fontSize: 28, fontWeight: 700, color: C.accent }}>${calc.base.toLocaleString()}</div><input type="range" min="35000" max="80000" step="1000" value={calc.base} onChange={e => setCalc(c => ({ ...c, base: +e.target.value }))} style={{ width: '100%', marginTop: 12, accentColor: C.accent }} /></div><div style={{ display: 'flex', gap: 12 }}>{[['csection', 'C-Section', '+$3,500'], ['twins', 'Twins', '+$7,500']].map(([k, l, v]) => <Glass key={k} onClick={() => setCalc(c => ({ ...c, [k]: !c[k] }))} variant={calc[k] ? 'accent' : 'default'} intensity="normal" glow={calc[k]} style={{ padding: 16, flex: '1 1 45%', textAlign: 'center' }}><div style={{ fontWeight: 600, fontSize: 15 }}>{l}</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{v}</div></Glass>)}</div></Glass><Glass intensity="strong" variant="accent" glow style={{ padding: 24 }}><div style={{ textAlign: 'center' }}><div style={{ fontSize: 14, color: C.textMuted, marginBottom: 8 }}>Estimated Total</div><div style={{ fontSize: 36, fontWeight: 700, color: C.accent }}>${calcTotal().toLocaleString()}</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>Before taxes (~28%): ${Math.round(calcTotal() * 0.72).toLocaleString()} net</div></div></Glass></Modal>;
+  // Journal Modal
+  if (modal === 'journal') return (
+    <ModalWrapper isOpen={true} title="Journal" onClose={closeModal} container={container}>
+      <Glass intensity="strong" style={{ marginBottom: 16, padding: 0 }}>
+        <textarea 
+          value={journalText} 
+          onChange={e => setJournalText(e.target.value)} 
+          placeholder="What's on your mind today?" 
+          style={{ width: '100%', minHeight: 160, padding: 20, border: 'none', background: 'transparent', fontSize: 16, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: 1.6 }} 
+        />
+      </Glass>
+      <GlassButton onClick={saveJ} fullWidth disabled={!journalText.trim()}>Save Entry</GlassButton>
+      {user.journal.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Previous Entries</h3>
+          {[...user.journal].reverse().slice(0, 5).map((j, i) => (
+            <Glass key={i} intensity="normal" style={{ marginBottom: 12, padding: 16 }}>
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>{new Date(j.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5 }}>{j.text}</p>
+            </Glass>
+          ))}
+        </div>
+      )}
+    </ModalWrapper>
+  );
   
-  if (modal === 'timeline') return <Modal title="Your Timeline"><p style={{ color: C.textMuted, marginBottom: 24 }}>Estimated dates based on your start</p>{timeline().map((s, i) => <div key={s.id} style={{ display: 'flex', marginBottom: 20 }}><div style={{ width: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 16 }}><div style={{ width: 14, height: 14, borderRadius: 7, background: s.status === 'done' ? C.success : s.status === 'current' ? C.accent : C.textLight, boxShadow: s.status === 'current' ? `0 0 12px ${C.accent}50` : 'none' }} />{i < timeline().length - 1 && <div style={{ width: 2, flex: 1, background: s.status === 'done' ? C.success : C.textLight, marginTop: 4, opacity: 0.5 }} />}</div><div style={{ flex: 1 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontWeight: 600, fontSize: 16 }}>{s.name}</span>{s.status === 'current' && <GlassPill color={C.accent}>Now</GlassPill>}{s.status === 'done' && <span style={{ fontSize: 12, color: C.success }}>✓</span>}</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 6 }}>{s.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {s.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div></div></div>)}</Modal>;
+  // Calculator Modal
+  if (modal === 'calculator') return (
+    <ModalWrapper isOpen={true} title="Compensation Calculator" onClose={closeModal} container={container}>
+      <Glass intensity="strong" style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 14, color: C.textMuted }}>Base Compensation</label>
+          <div style={{ fontSize: 28, fontWeight: 700, color: C.accent }}>${calc.base.toLocaleString()}</div>
+          <input type="range" min="35000" max="80000" step="1000" value={calc.base} onChange={e => setCalc(c => ({ ...c, base: +e.target.value }))} style={{ width: '100%', marginTop: 12, accentColor: C.accent }} />
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {[['csection', 'C-Section', '+$3,500'], ['twins', 'Twins', '+$7,500']].map(([k, l, v]) => (
+            <Glass key={k} onClick={() => setCalc(c => ({ ...c, [k]: !c[k] }))} variant={calc[k] ? 'accent' : 'default'} intensity="normal" glow={calc[k]} style={{ padding: 16, flex: '1 1 45%', textAlign: 'center' }}>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>{l}</div>
+              <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{v}</div>
+            </Glass>
+          ))}
+        </div>
+      </Glass>
+      <Glass intensity="strong" variant="accent" glow style={{ padding: 24 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 8 }}>Estimated Total</div>
+          <div style={{ fontSize: 36, fontWeight: 700, color: C.accent }}>${calcTotal().toLocaleString()}</div>
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>After taxes (~28%): ${Math.round(calcTotal() * 0.72).toLocaleString()} net</div>
+        </div>
+      </Glass>
+    </ModalWrapper>
+  );
   
-  if (modal === 'hardMoments') return <Modal title="Hard Moments"><p style={{ color: C.textMuted, marginBottom: 24 }}>Support for the tough times. You're not alone.</p>{hardMoments.map(h => <Glass key={h.id} onClick={() => { setModal('hardDetail'); setModalData(h); }} intensity="normal" style={{ marginBottom: 12, padding: 18 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontWeight: 600, fontSize: 16 }}>{h.title}</span>{Icons.chevron()}</div></Glass>)}</Modal>;
+  // Timeline Modal
+  if (modal === 'timeline') return (
+    <ModalWrapper isOpen={true} title="Your Timeline" onClose={closeModal} container={container}>
+      <p style={{ color: C.textMuted, marginBottom: 24 }}>Estimated dates based on your start</p>
+      {timeline().map((s, i) => (
+        <div key={s.id} style={{ display: 'flex', marginBottom: 20 }}>
+          <div style={{ width: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 16 }}>
+            <div style={{ width: 14, height: 14, borderRadius: 7, background: s.status === 'done' ? C.success : s.status === 'current' ? C.accent : C.textLight, boxShadow: s.status === 'current' ? `0 0 12px ${C.accent}50` : 'none' }} />
+            {i < timeline().length - 1 && <div style={{ width: 2, flex: 1, background: s.status === 'done' ? C.success : C.textLight, marginTop: 4, opacity: 0.5 }} />}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 600, fontSize: 16 }}>{s.name}</span>
+              {s.status === 'current' && <GlassPill color={C.accent}>Now</GlassPill>}
+              {s.status === 'done' && <span style={{ fontSize: 12, color: C.success }}>✓</span>}
+            </div>
+            <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6 }}>{s.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {s.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+          </div>
+        </div>
+      ))}
+    </ModalWrapper>
+  );
   
-  if (modal === 'hardDetail' && modalData) return <Modal title={modalData.title}><Glass intensity="strong" style={{ padding: 24 }}><pre style={{ fontFamily: 'inherit', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>{modalData.content}</pre></Glass></Modal>;
+  // Hard Moments Modal
+  if (modal === 'hardMoments') return (
+    <ModalWrapper isOpen={true} title="Hard Moments" onClose={closeModal} container={container}>
+      <p style={{ color: C.textMuted, marginBottom: 24 }}>Support for the tough times. You're not alone.</p>
+      {hardMoments.map(h => (
+        <Glass key={h.id} onClick={() => { setModal('hardDetail'); setModalData(h); }} intensity="normal" style={{ marginBottom: 12, padding: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 600, fontSize: 16 }}>{h.title}</span>
+            {Icons.chevron()}
+          </div>
+        </Glass>
+      ))}
+    </ModalWrapper>
+  );
+  
+  // Hard Moment Detail Modal
+  if (modal === 'hardDetail' && modalData) return (
+    <ModalWrapper isOpen={true} title={modalData.title} onClose={closeModal} container={container}>
+      <Glass intensity="strong" style={{ padding: 24 }}>
+        <pre style={{ fontFamily: 'inherit', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0 }}>{modalData.content}</pre>
+      </Glass>
+    </ModalWrapper>
+  );
 
-  // AI Modal - Beautiful new design
+  // AI Modal - FIXED: Using controlled input properly
   if (modal === 'ai') {
     const suggestions = user.type === 'gc' 
       ? ['How much can I earn?', `What are the laws in ${user.state}?`, 'What are the requirements?', 'Tell me about the transfer process']
       : ['What are the total costs?', `What are the laws in ${user.state}?`, 'How do I find a carrier?', 'What is the timeline?'];
     return (
-      <Modal title="">
+      <ModalWrapper isOpen={true} title="" onClose={closeModal} container={container}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 60, height: 60, borderRadius: 30, background: `linear-gradient(135deg, ${C.accent}, ${C.accentDark})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: `0 8px 24px ${C.accent}40` }}>
             {Icons.sparkle()}
@@ -1718,7 +1840,15 @@ export default function App() {
         </div>
         
         <Glass intensity="strong" style={{ marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center' }}>
-          <input value={aiQuery} onChange={e => setAiQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && askAi()} placeholder="Type your question..." style={{ flex: 1, padding: '18px 20px', border: 'none', background: 'transparent', fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+          <input 
+            type="text"
+            value={aiQuery} 
+            onChange={e => setAiQuery(e.target.value)} 
+            onKeyDown={e => e.key === 'Enter' && askAi()} 
+            placeholder="Type your question..." 
+            autoComplete="off"
+            style={{ flex: 1, padding: '18px 20px', border: 'none', background: 'transparent', fontSize: 16, outline: 'none', boxSizing: 'border-box' }} 
+          />
           <div onClick={askAi} style={{ padding: '12px 16px', cursor: aiQuery.trim() ? 'pointer' : 'default', opacity: aiQuery.trim() ? 1 : 0.4 }}>{Icons.send()}</div>
         </Glass>
         
@@ -1733,14 +1863,14 @@ export default function App() {
             <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 12, fontWeight: 500 }}>Popular questions:</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {suggestions.map((q, i) => (
-                <Glass key={i} onClick={() => { setAiQuery(q); }} intensity="subtle" style={{ padding: '10px 14px', borderRadius: 12, cursor: 'pointer' }}>
+                <Glass key={i} onClick={() => setAiQuery(q)} intensity="subtle" style={{ padding: '10px 14px', borderRadius: 12, cursor: 'pointer' }}>
                   <span style={{ fontSize: 13, color: C.textSecondary }}>{q}</span>
                 </Glass>
               ))}
             </div>
           </div>
         )}
-      </Modal>
+      </ModalWrapper>
     );
   }
 
@@ -1784,39 +1914,18 @@ export default function App() {
       
       <div style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', marginBottom: 12 }}>Quick Tools</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}><Glass onClick={() => setModal('journal')} intensity="normal" style={{ padding: 16, textAlign: 'center' }}>{Icons.journal()}<div style={{ fontSize: 12, marginTop: 8, fontWeight: 500 }}>Journal</div></Glass><Glass onClick={() => setModal('calculator')} intensity="normal" style={{ padding: 16, textAlign: 'center' }}>{Icons.calculator()}<div style={{ fontSize: 12, marginTop: 8, fontWeight: 500 }}>Calculator</div></Glass><Glass onClick={() => setModal('hardMoments')} intensity="normal" style={{ padding: 16, textAlign: 'center' }}>{Icons.support()}<div style={{ fontSize: 12, marginTop: 8, fontWeight: 500 }}>Support</div></Glass></div>
-      
-      {saving && <div style={{ textAlign: 'center' }}><span style={{ fontSize: 12, color: C.textMuted }}>Saving...</span></div>}
     </div><Nav /></div>
   );
 
   // LEARN TAB
   if (tab === 'learn') {
-    const cats = [
-      { k: 'Medical', icon: Icons.medical, items: ['screening', 'medications', 'transfer', 'ivf'] },
-      { k: 'Legal', icon: Icons.legal, items: ['contract', 'escrow', 'attorneys', 'parentage'] },
-      { k: 'Financial', icon: Icons.financial, items: ['compensation', 'budget', 'insurance'] },
-      { k: 'Wellness', icon: Icons.wellness, items: ['relationship', 'therapists'] }
-    ];
+    const cats = [{ k: 'Medical', icon: Icons.medical, items: ['screening', 'medications', 'transfer', 'ivf'] },{ k: 'Legal', icon: Icons.legal, items: ['contract', 'escrow', 'attorneys', 'parentage'] },{ k: 'Financial', icon: Icons.financial, items: ['compensation', 'budget', 'insurance'] },{ k: 'Wellness', icon: Icons.wellness, items: ['relationship', 'therapists'] }];
     return (
       <div style={page}><Orb size={180} top="-40px" left="-20px" color="rgba(255,180,150,0.3)" blur={60} /><div style={container}>
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Learn</h1>
         <p style={{ color: C.textMuted, marginBottom: 24, fontSize: 15 }}>Comprehensive guides for your journey</p>
-        
         <Glass onClick={() => setModal('ai')} variant="accent" intensity="normal" style={{ marginBottom: 28, padding: 16 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{Icons.ai()}<span style={{ color: C.textSecondary, fontSize: 15 }}>Ask me anything...</span></div></Glass>
-        
-        {cats.map(c => (
-          <div key={c.k} style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>{c.icon()}<span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase' }}>{c.k}</span></div>
-            {c.items.map(k => RESOURCES[k] && (
-              <Glass key={k} onClick={() => { setModal('resource'); setModalData(RESOURCES[k]); }} intensity="normal" style={{ marginBottom: 10, padding: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div><div style={{ fontWeight: 600, fontSize: 15 }}>{RESOURCES[k].title}</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{RESOURCES[k].time} read</div></div>
-                  {Icons.chevron()}
-                </div>
-              </Glass>
-            ))}
-          </div>
-        ))}
+        {cats.map(c => (<div key={c.k} style={{ marginBottom: 28 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>{c.icon()}<span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, textTransform: 'uppercase' }}>{c.k}</span></div>{c.items.map(k => RESOURCES[k] && (<Glass key={k} onClick={() => { setModal('resource'); setModalData(RESOURCES[k]); }} intensity="normal" style={{ marginBottom: 10, padding: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div><div style={{ fontWeight: 600, fontSize: 15 }}>{RESOURCES[k].title}</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{RESOURCES[k].time} read</div></div>{Icons.chevron()}</div></Glass>))}</div>))}
       </div><Nav /></div>
     );
   }
@@ -1826,47 +1935,9 @@ export default function App() {
     <div style={page}><Orb size={160} top="10%" left="80%" color="rgba(200,170,255,0.3)" blur={50} /><div style={container}>
       <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 6 }}>Support</h1>
       <p style={{ color: C.textMuted, marginBottom: 28, fontSize: 15 }}>Tools and resources when you need them</p>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
-        {[
-          { icon: Icons.journal, l: 'Journal', d: `${user.journal.length} entries`, a: () => setModal('journal') },
-          { icon: Icons.calculator, l: 'Calculator', d: 'Estimate compensation', a: () => setModal('calculator') },
-          { icon: Icons.timeline, l: 'Timeline', d: 'View your dates', a: () => setModal('timeline') },
-          { icon: Icons.support, l: 'Hard Moments', d: 'Get support', a: () => setModal('hardMoments') }
-        ].map((x, i) => (
-          <Glass key={i} onClick={x.a} intensity="normal" style={{ padding: 20, textAlign: 'center' }}>
-            <div style={{ marginBottom: 10 }}>{x.icon()}</div>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{x.l}</div>
-            <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{x.d}</div>
-          </Glass>
-        ))}
-      </div>
-      
-      <Glass onClick={() => setModal('ai')} variant="accent" intensity="normal" style={{ marginBottom: 28, padding: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 22, background: `linear-gradient(135deg, ${C.accent}, ${C.accentDark})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icons.sparkle()}</div>
-          <div><div style={{ fontWeight: 600, fontSize: 16 }}>Ask Me Anything</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Get answers to your questions</div></div>
-        </div>
-      </Glass>
-      
-      {user.moods.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Recent Moods</h3>
-          <Glass intensity="normal" style={{ padding: 16 }}>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {user.moods.slice(-14).map((m, i) => {
-                const mood = MOODS.find(x => x.label === m.mood);
-                return (
-                  <div key={i} style={{ width: 40, height: 40, borderRadius: 12, background: mood?.color || C.textLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 16 }}>{mood?.emoji || '😐'}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {user.moods.length >= 7 && <p style={{ fontSize: 12, color: C.textMuted, marginTop: 12, marginBottom: 0 }}>Last {Math.min(user.moods.length, 14)} check-ins</p>}
-          </Glass>
-        </div>
-      )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>{[{ icon: Icons.journal, l: 'Journal', d: `${user.journal.length} entries`, a: () => setModal('journal') },{ icon: Icons.calculator, l: 'Calculator', d: 'Estimate compensation', a: () => setModal('calculator') },{ icon: Icons.timeline, l: 'Timeline', d: 'View your dates', a: () => setModal('timeline') },{ icon: Icons.support, l: 'Hard Moments', d: 'Get support', a: () => setModal('hardMoments') }].map((x, i) => (<Glass key={i} onClick={x.a} intensity="normal" style={{ padding: 20, textAlign: 'center' }}><div style={{ marginBottom: 10 }}>{x.icon()}</div><div style={{ fontWeight: 600, fontSize: 15 }}>{x.l}</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{x.d}</div></Glass>))}</div>
+      <Glass onClick={() => setModal('ai')} variant="accent" intensity="normal" style={{ marginBottom: 28, padding: 18 }}><div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><div style={{ width: 44, height: 44, borderRadius: 22, background: `linear-gradient(135deg, ${C.accent}, ${C.accentDark})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icons.sparkle()}</div><div><div style={{ fontWeight: 600, fontSize: 16 }}>Ask Me Anything</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Get answers to your questions</div></div></div></Glass>
+      {user.moods.length > 0 && (<div><h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Recent Moods</h3><Glass intensity="normal" style={{ padding: 16 }}><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{user.moods.slice(-14).map((m, i) => { const mood = MOODS.find(x => x.label === m.mood); return (<div key={i} style={{ width: 40, height: 40, borderRadius: 12, background: mood?.color || C.textLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 16 }}>{mood?.emoji || '😐'}</span></div>); })}</div>{user.moods.length >= 7 && <p style={{ fontSize: 12, color: C.textMuted, marginTop: 12, marginBottom: 0 }}>Last {Math.min(user.moods.length, 14)} check-ins</p>}</Glass></div>)}
     </div><Nav /></div>
   );
 
@@ -1874,48 +1945,10 @@ export default function App() {
   if (tab === 'profile') return (
     <div style={page}><Orb size={140} top="5%" left="-10%" color="rgba(255,180,150,0.3)" blur={50} /><div style={container}>
       <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 28 }}>Profile</h1>
-      
-      <Glass intensity="strong" style={{ marginBottom: 20 }}>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ width: 90, height: 90, borderRadius: 45, background: `linear-gradient(135deg, ${C.accent}, #9070a0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 36, color: 'white', fontWeight: 600, boxShadow: `0 8px 24px ${C.accent}30` }}>{user.name.charAt(0).toUpperCase()}</div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>{user.name}</h2>
-          <p style={{ color: C.textMuted, margin: '6px 0 0', fontSize: 14 }}>{session?.user?.email}</p>
-        </div>
-        <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 20 }}>
-          {[
-            ['Role', user.type === 'gc' ? 'Gestational Carrier' : 'Intended Parent'],
-            ['Location', user.state],
-            ['Stage', cur?.name || 'Not set'],
-            ['Journey Day', days]
-          ].map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ color: C.textMuted }}>{k}</span>
-              <span style={{ fontWeight: 600 }}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </Glass>
-      
-      <Glass intensity="strong" style={{ marginBottom: 20 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Your Stats</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}>
-          <div><div style={{ fontSize: 28, fontWeight: 700, color: C.accent }}>{Object.values(user.tasks).flat().filter(t => t.done).length}</div><div style={{ fontSize: 12, color: C.textMuted }}>Tasks Done</div></div>
-          <div><div style={{ fontSize: 28, fontWeight: 700, color: C.success }}>{user.moods.length}</div><div style={{ fontSize: 12, color: C.textMuted }}>Mood Logs</div></div>
-          <div><div style={{ fontSize: 28, fontWeight: 700, color: C.warning }}>{user.journal.length}</div><div style={{ fontSize: 12, color: C.textMuted }}>Journal Entries</div></div>
-        </div>
-      </Glass>
-      
-      <Glass onClick={handleLogout} intensity="normal" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.accent }}>
-          {Icons.logout()}
-          <span style={{ fontWeight: 600, fontSize: 16 }}>Sign Out</span>
-        </div>
-      </Glass>
-      
-      <div style={{ textAlign: 'center', marginTop: 28 }}>
-        <p style={{ fontSize: 12, color: C.textLight }}>Gestational.ly v15</p>
-        <p style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>For educational purposes only</p>
-      </div>
+      <Glass intensity="strong" style={{ marginBottom: 20 }}><div style={{ textAlign: 'center', marginBottom: 20 }}><div style={{ width: 90, height: 90, borderRadius: 45, background: `linear-gradient(135deg, ${C.accent}, #9070a0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 36, color: 'white', fontWeight: 600, boxShadow: `0 8px 24px ${C.accent}30` }}>{user.name.charAt(0).toUpperCase()}</div><h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>{user.name}</h2><p style={{ color: C.textMuted, margin: '6px 0 0', fontSize: 14 }}>{session?.user?.email}</p></div><div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 20 }}>{[['Role', user.type === 'gc' ? 'Gestational Carrier' : 'Intended Parent'],['Location', user.state],['Stage', cur?.name || 'Not set'],['Journey Day', days]].map(([k, v]) => (<div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}><span style={{ color: C.textMuted }}>{k}</span><span style={{ fontWeight: 600 }}>{v}</span></div>))}</div></Glass>
+      <Glass intensity="strong" style={{ marginBottom: 20 }}><h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Your Stats</h3><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center' }}><div><div style={{ fontSize: 28, fontWeight: 700, color: C.accent }}>{Object.values(user.tasks).flat().filter(t => t.done).length}</div><div style={{ fontSize: 12, color: C.textMuted }}>Tasks Done</div></div><div><div style={{ fontSize: 28, fontWeight: 700, color: C.success }}>{user.moods.length}</div><div style={{ fontSize: 12, color: C.textMuted }}>Mood Logs</div></div><div><div style={{ fontSize: 28, fontWeight: 700, color: C.warning }}>{user.journal.length}</div><div style={{ fontSize: 12, color: C.textMuted }}>Journal Entries</div></div></div></Glass>
+      <Glass onClick={handleLogout} intensity="normal" style={{ padding: 18 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: C.accent }}>{Icons.logout()}<span style={{ fontWeight: 600, fontSize: 16 }}>Sign Out</span></div></Glass>
+      <div style={{ textAlign: 'center', marginTop: 28 }}><p style={{ fontSize: 12, color: C.textLight }}>Gestational.ly v15.1</p><p style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>For educational purposes only</p></div>
     </div><Nav /></div>
   );
 
